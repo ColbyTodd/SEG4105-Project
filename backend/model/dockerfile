@@ -1,0 +1,25 @@
+# Use official TensorFlow image with Python 3.9
+FROM tensorflow/tensorflow:2.12.0
+
+# Set working directory
+WORKDIR /app
+
+# Copy training script into container
+COPY ./model.py .
+
+# Install system dependencies and Python packages
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages: hub, tensorflow-addons, opencv-python
+RUN pip install --no-cache-dir \
+    deeplake \
+    tensorflow-addons \
+    opencv-python
+
+# Set environment variable for hub cache if needed
+ENV HUB_CACHE_DIR=/app/.cache
+
+# Command to run your training script
+CMD ["python", "model.py"]
