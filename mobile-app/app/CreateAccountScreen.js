@@ -12,29 +12,36 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
+// Screen that handles creating a new user account
 export default function CreateAccountScreen({ onBack }) {
+
+    // Local state variables for all form inputs
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [email, setEmail] = useState('');
     const [height, setHeight] = useState('');
     const [weight, setWeight] = useState('');
-    const [exercise, setExercise] = useState('placeholder');
+    const [exercise, setExercise] = useState('placeholder'); // Default placeholder value
 
+    // Validate all fields and show a summary message
     const handleCreate = () => {
-        if (
+        const allFieldsFilled =
             username.trim() !== '' &&
             password.trim() !== '' &&
             email.trim() !== '' &&
             height.trim() !== '' &&
             weight.trim() !== '' &&
-            exercise !== 'placeholder'
-        ) {
+            exercise !== 'placeholder';
+
+        if (allFieldsFilled) {
+            // Display entered information (placeholder behavior for now)
             Alert.alert(
                 'Account Created',
                 `Username: ${username}\nEmail: ${email}\nHeight: ${height} cm\nWeight: ${weight} kg\nExercise: ${exercise}`
             );
-            onBack(); // Go back to LoginScreen
+            onBack(); // Return to login screen after success
         } else {
+            // Show error if anything is missing
             Alert.alert('Error', 'Please fill out all fields and select exercise frequency');
         }
     };
@@ -42,6 +49,7 @@ export default function CreateAccountScreen({ onBack }) {
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
+            // Adjusts layout when keyboard appears (iOS only uses padding)
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
             <ScrollView
@@ -51,12 +59,15 @@ export default function CreateAccountScreen({ onBack }) {
                 <Text style={styles.title}>Create Account</Text>
                 <Text style={styles.subtitle}>Enter your information</Text>
 
+                {/* Username input */}
                 <TextInput
                     style={styles.input}
                     placeholder="Username"
                     value={username}
                     onChangeText={setUsername}
                 />
+
+                {/* Password input */}
                 <TextInput
                     style={styles.input}
                     placeholder="Password"
@@ -64,6 +75,8 @@ export default function CreateAccountScreen({ onBack }) {
                     onChangeText={setPassword}
                     secureTextEntry
                 />
+
+                {/* Email input */}
                 <TextInput
                     style={styles.input}
                     placeholder="Email"
@@ -71,6 +84,8 @@ export default function CreateAccountScreen({ onBack }) {
                     onChangeText={setEmail}
                     keyboardType="email-address"
                 />
+
+                {/* Height input (numeric) */}
                 <TextInput
                     style={styles.input}
                     placeholder="Height (cm)"
@@ -78,6 +93,8 @@ export default function CreateAccountScreen({ onBack }) {
                     onChangeText={setHeight}
                     keyboardType="numeric"
                 />
+
+                {/* Weight input (numeric) */}
                 <TextInput
                     style={styles.input}
                     placeholder="Weight (kg)"
@@ -86,6 +103,7 @@ export default function CreateAccountScreen({ onBack }) {
                     keyboardType="numeric"
                 />
 
+                {/* Exercise frequency dropdown */}
                 <Picker
                     selectedValue={exercise}
                     onValueChange={(itemValue) => setExercise(itemValue)}
@@ -99,9 +117,12 @@ export default function CreateAccountScreen({ onBack }) {
                     <Picker.Item label="Prefer not to say" value="prefer_not_to_say" />
                 </Picker>
 
+                {/* Create account button */}
                 <TouchableOpacity style={styles.button} onPress={handleCreate}>
                     <Text style={styles.buttonText}>Create Account</Text>
                 </TouchableOpacity>
+
+                {/* Back button to return to login */}
                 <TouchableOpacity style={[styles.button, styles.backButton]} onPress={onBack}>
                     <Text style={styles.buttonText}>Back</Text>
                 </TouchableOpacity>
@@ -110,6 +131,7 @@ export default function CreateAccountScreen({ onBack }) {
     );
 }
 
+// Styling for the screen
 const styles = StyleSheet.create({
     container: {
         justifyContent: 'center',
