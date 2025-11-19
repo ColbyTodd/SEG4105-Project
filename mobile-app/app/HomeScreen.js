@@ -15,9 +15,12 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'expo-camera';
 
+// Get screen width for responsive image sizing
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ onLogout }) {
+
+    // Preloaded demo images
     const [foodImages, setFoodImages] = useState([
         { source: require('../assets/food1.jpg'), dishName: 'Butter Chicken with Naan', calories: '750', ingredients: 'Butter Chicken, Butter Sauce, Naan Bread' },
         { source: require('../assets/food2.jpg'), dishName: 'Hakka Noodles', calories: '400', ingredients: 'Noodles, Chili Sauce, Egg, Tofu, Parsley' },
@@ -26,26 +29,42 @@ export default function HomeScreen({ onLogout }) {
         { source: require('../assets/food5.jpg'), dishName: 'Burger and Chips', calories: '610', ingredients: 'Beef, Onion, Cheese, Tomato, Lettuce, Potato Chips' },
     ]);
 
+    // Carousel and modal state variables
     const [activeIndex, setActiveIndex] = useState(0);
     const [modalVisible, setModalVisible] = useState(false);
+
+    // Dish info for the modal
     const [currentDishName, setCurrentDishName] = useState('');
     const [currentCalories, setCurrentCalories] = useState('');
     const [currentIngredients, setCurrentIngredients] = useState('');
+
+    // Keeps track of which image is being edited
     const [currentImageIndex, setCurrentImageIndex] = useState(null);
+
+    // Stores a newly taken or uploaded image before saving
     const [tempImage, setTempImage] = useState(null);
-    const [isNewImage, setIsNewImage] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
+
+    // Modal mode flags
+    const [isNewImage, setIsNewImage] = useState(false); // new image upload
+    const [isEditing, setIsEditing] = useState(false);   // toggles text input editing
+
+    // Backup values for canceling edits
     const [backupDishName, setBackupDishName] = useState('');
     const [backupCalories, setBackupCalories] = useState('');
     const [backupIngredients, setBackupIngredients] = useState('');
 
+    // Scroll/animation refs
     const scrollX = useRef(new Animated.Value(0)).current;
     const scrollRef = useRef(null);
 
+    // Layout values for snapping effect
     const imageWidth = width * 0.7;
     const imageSpacing = 15;
     const snapInterval = imageWidth + imageSpacing;
 
+    /**
+     * Updates active index while scrolling horizontally
+     */
     const handleScroll = Animated.event(
         [{ nativeEvent: { contentOffset: { x: scrollX } } }],
         {
@@ -57,11 +76,17 @@ export default function HomeScreen({ onLogout }) {
         }
     );
 
+    /**
+     * Scroll programmatically to an index in the carousel
+     */
     const scrollToIndex = (index) => {
         if (!scrollRef.current) return;
         scrollRef.current.scrollTo({ x: index * snapInterval, animated: true });
     };
 
+    /**
+     * Pick an existing image from the device
+     */
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') return;
@@ -73,10 +98,15 @@ export default function HomeScreen({ onLogout }) {
 
         if (!result.canceled) {
             setTempImage({ uri: result.assets[0].uri });
-            openModalForNewImage('Fish and Chips', '650', 'Fish, Potato Chips, Lemon, Tartar Sauce');
+
+            // Default dish info for new uploads
+            openModalForNewImage('Fish and Chips', '650', 'Fish, Fries, Lemon, Tartar Sauce');
         }
     };
 
+    /**
+     * Take a photo using the device camera
+     */
     const takePhoto = async () => {
         const { status } = await Camera.requestCameraPermissionsAsync();
         if (status !== 'granted') return;
@@ -88,31 +118,43 @@ export default function HomeScreen({ onLogout }) {
 
         if (!result.canceled) {
             setTempImage({ uri: result.assets[0].uri });
-            openModalForNewImage('Fish and Chips', '650', 'Fish, Potato Chips, Lemon, Tartar Sauce');
+            openModalForNewImage('Fish and Chips', '650', 'Fish, Fries, Lemon, Tartar Sauce');
         }
     };
 
+    /**
+     * Opens modal in "new image" mode with default values
+     */
     const openModalForNewImage = (defaultDishName, defaultCalories, defaultIngredients) => {
         setCurrentDishName(defaultDishName);
         setCurrentCalories(defaultCalories);
         setCurrentIngredients(defaultIngredients);
+
+        // Backup so "cancel edit" works correctly
         setBackupDishName(defaultDishName);
         setBackupCalories(defaultCalories);
         setBackupIngredients(defaultIngredients);
+
         setCurrentImageIndex(null);
         setIsNewImage(true);
         setIsEditing(false);
         setModalVisible(true);
     };
 
+    /**
+     * Opens modal to edit an existing food card
+     */
     const openEditModal = (index) => {
         if (!foodImages[index]) return;
 
         setCurrentImageIndex(index);
+
+        // Load dish details
         setCurrentDishName(foodImages[index].dishName);
         setCurrentCalories(foodImages[index].calories);
         setCurrentIngredients(foodImages[index].ingredients);
 
+        // Backup original values
         setBackupDishName(foodImages[index].dishName);
         setBackupCalories(foodImages[index].calories);
         setBackupIngredients(foodImages[index].ingredients);
@@ -125,7 +167,11 @@ export default function HomeScreen({ onLogout }) {
         scrollToIndex(index);
     };
 
+    /**
+     * Save changes from the modal
+     */
     const saveModal = () => {
+        // Saving NEW image
         if (tempImage && isNewImage) {
             const newFood = {
                 source: tempImage,
@@ -134,34 +180,51 @@ export default function HomeScreen({ onLogout }) {
                 ingredients: currentIngredients,
             };
             setFoodImages([...foodImages, newFood]);
+
+            // Snap to the new image
             setTimeout(() => scrollToIndex(foodImages.length), 100);
-        } else if (currentImageIndex !== null) {
-            const updatedFoodImages = [...foodImages];
-            updatedFoodImages[currentImageIndex] = {
-                ...updatedFoodImages[currentImageIndex],
+        }
+
+        // Saving edits to EXISTING image
+        else if (currentImageIndex !== null) {
+            const updated = [...foodImages];
+            updated[currentImageIndex] = {
+                ...updated[currentImageIndex],
                 dishName: currentDishName,
                 calories: currentCalories,
                 ingredients: currentIngredients,
             };
-            setFoodImages(updatedFoodImages);
+            setFoodImages(updated);
         }
+
         resetModalState();
     };
 
+    /**
+     * Deletes a card OR closes modal for new images
+     */
     const discardModal = () => {
+        // New image? → just close modal
         if (isNewImage && tempImage) {
-            // just close modal
-        } else if (currentImageIndex !== null && foodImages[currentImageIndex]) {
-            const updatedFoodImages = [...foodImages];
-            updatedFoodImages.splice(currentImageIndex, 1);
-            setFoodImages(updatedFoodImages);
+        }
 
-            const newIndex = Math.min(updatedFoodImages.length - 1, currentImageIndex);
+        // Remove existing image
+        else if (currentImageIndex !== null && foodImages[currentImageIndex]) {
+            const updated = [...foodImages];
+            updated.splice(currentImageIndex, 1);
+            setFoodImages(updated);
+
+            // Adjust carousel index safely
+            const newIndex = Math.min(updated.length - 1, currentImageIndex);
             setActiveIndex(newIndex);
         }
+
         resetModalState();
     };
 
+    /**
+     * Reverts text edits to original values
+     */
     const cancelEdit = () => {
         setCurrentDishName(backupDishName);
         setCurrentCalories(backupCalories);
@@ -169,6 +232,9 @@ export default function HomeScreen({ onLogout }) {
         setIsEditing(false);
     };
 
+    /**
+     * Clears all modal state
+     */
     const resetModalState = () => {
         setTempImage(null);
         setIsNewImage(false);
@@ -182,8 +248,11 @@ export default function HomeScreen({ onLogout }) {
 
     return (
         <View style={styles.container}>
+
+            {/* Main Title */}
             <Text style={styles.title}>Welcome!</Text>
 
+            {/* Scrollable animated food carousel */}
             <Animated.ScrollView
                 horizontal
                 ref={scrollRef}
@@ -196,6 +265,8 @@ export default function HomeScreen({ onLogout }) {
                 scrollEventThrottle={16}
             >
                 {foodImages.map((img, index) => {
+
+                    // Create scale animation effect based on scroll position
                     const inputRange = [
                         (index - 1) * snapInterval,
                         index * snapInterval,
@@ -226,6 +297,7 @@ export default function HomeScreen({ onLogout }) {
                 })}
             </Animated.ScrollView>
 
+            {/* Carousel dot indicators */}
             <View style={styles.dotsContainer}>
                 {foodImages.map((_, index) => (
                     <View
@@ -238,6 +310,7 @@ export default function HomeScreen({ onLogout }) {
                 ))}
             </View>
 
+            {/* Upload / Camera Button Row */}
             <View style={styles.buttonRow}>
                 <TouchableOpacity style={[styles.button, { flex: 1, marginRight: 10 }]} onPress={pickImage}>
                     <Text style={styles.buttonText}>Upload Photo</Text>
@@ -248,16 +321,20 @@ export default function HomeScreen({ onLogout }) {
                 </TouchableOpacity>
             </View>
 
+            {/* Logout Button */}
             <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={onLogout}>
                 <Text style={styles.buttonText}>Log Out</Text>
             </TouchableOpacity>
 
+            {/* Modal for editing / adding images */}
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
                 <KeyboardAvoidingView
                     style={styles.modalContainer}
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 >
                     <View style={styles.modalContent}>
+
+                        {/* Preview image inside modal */}
                         {(tempImage || (currentImageIndex !== null && foodImages[currentImageIndex])) && (
                             <Image
                                 source={tempImage ? tempImage : foodImages[currentImageIndex].source}
@@ -265,6 +342,7 @@ export default function HomeScreen({ onLogout }) {
                             />
                         )}
 
+                        {/* Editable text fields */}
                         <Text>Dish Name:</Text>
                         <TextInput
                             style={styles.input}
@@ -291,7 +369,10 @@ export default function HomeScreen({ onLogout }) {
                             multiline={true}
                         />
 
+                        {/* Modal action buttons */}
                         <View style={styles.modalButtons}>
+
+                            {/* Edit / Cancel Edit */}
                             {!isEditing ? (
                                 <TouchableOpacity
                                     style={[styles.modalButton, { backgroundColor: '#00796b', marginRight: 10 }]}
@@ -308,6 +389,7 @@ export default function HomeScreen({ onLogout }) {
                                 </TouchableOpacity>
                             )}
 
+                            {/* Save */}
                             <TouchableOpacity
                                 style={[styles.modalButton, { backgroundColor: '#009688', marginRight: 10 }]}
                                 onPress={saveModal}
@@ -315,12 +397,14 @@ export default function HomeScreen({ onLogout }) {
                                 <Text style={styles.buttonText}>Save</Text>
                             </TouchableOpacity>
 
+                            {/* Discard */}
                             <TouchableOpacity
                                 style={[styles.modalButton, { backgroundColor: '#e53935' }]}
                                 onPress={discardModal}
                             >
                                 <Text style={styles.buttonText}>Discard</Text>
                             </TouchableOpacity>
+
                         </View>
                     </View>
                 </KeyboardAvoidingView>
@@ -329,8 +413,10 @@ export default function HomeScreen({ onLogout }) {
     );
 }
 
+/* --------------------------- STYLES --------------------------- */
+
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#e0f7fa', paddingTop: 30 }, // reduced top padding
+    container: { flex: 1, backgroundColor: '#e0f7fa', paddingTop: 30 },
     title: { fontSize: 36, fontWeight: 'bold', color: '#00796b', textAlign: 'center', marginBottom: 15 },
     scrollContent: { alignItems: 'center' },
     foodImage: { width: width * 0.7, height: 250, borderRadius: 15, resizeMode: 'cover' },
